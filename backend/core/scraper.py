@@ -135,7 +135,7 @@ async def extract_youtube(url: str) -> tuple[str, str, int]:
         except Exception as e:
             print(f"[SCRAPER] Transcript API blocked (expected on cloud): {e}")
 
-    # 4. Fallback to video description
+    # 4. Fallback to video description from page HTML
     if (not transcript_text) or (len(transcript_text) < 100):
         try:
             desc_patterns = [
@@ -147,7 +147,6 @@ async def extract_youtube(url: str) -> tuple[str, str, int]:
                 desc_match = re.search(pattern, page_html)
                 if desc_match:
                     desc_text = desc_match.group(1).strip()
-                    # Decode escaped characters
                     desc_text = desc_text.replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
                     if len(desc_text) >= 50:
                         transcript_text = desc_text
@@ -156,7 +155,23 @@ async def extract_youtube(url: str) -> tuple[str, str, int]:
         except Exception:
             pass
 
-    # 5. Never fail — always return something
+    # 5. Noembed fallback (works from cloud IPs — proxies the request)
+    if (not transcript_text) or (len(transcript_text) < 100):
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                noemb = await client.get(
+                    f"https://noembed.com/embed?url=https://www.youtube.com/watch?v={video_id}"
+                )
+                if noemb.status_code == 200:
+                    data = noemb.json()
+                    desc = data.get("description") or data.get("title") or ""
+                    if len(desc) >= 50:
+                        transcript_text = desc
+                        print(f"[SCRAPER] noembed fallback: {len(transcript_text)} chars")
+        except Exception as e:
+            print(f"[SCRAPER] noembed failed: {e}")
+
+    # 6. Never fail — always return something
     if not transcript_text or len(transcript_text) < 50:
         transcript_text = f"YouTube video: {title}. Transcript not available on cloud hosting due to IP restrictions. Content was processed from the video description and metadata."
         print(f"[SCRAPER] Minimal content fallback")
