@@ -1192,4 +1192,10 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
   }
 
   .dashboard-notes-column { width: 100%; }
+
+  .highlight-btn {
+    max-width: 90vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }

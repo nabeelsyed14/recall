@@ -5,34 +5,38 @@ export default function TextHighlighter({ contentId, source, children }) {
   const [selection, setSelection] = useState(null)
   const [saved, setSaved] = useState(false)
 
-  useEffect(() => {
-    function handleMouseUp() {
-      setTimeout(() => {
-        const sel = window.getSelection()
-        if (!sel || sel.isCollapsed || !sel.toString().trim()) {
-          setSelection(null)
-          return
-        }
-        const text = sel.toString().trim()
-        if (text.length < 5) {
-          setSelection(null)
-          return
-        }
-        const range = sel.getRangeAt(0)
-        const rect = range.getBoundingClientRect()
-        const x = rect.left + rect.width / 2
-        const y = rect.top + window.scrollY
-        if (x === 0 && y === 0) {
-          setSelection(null)
-          return
-        }
-        setSelection({ text, x, y })
-      }, 10)
-    }
-
-    document.addEventListener('mouseup', handleMouseUp)
-    return () => document.removeEventListener('mouseup', handleMouseUp)
+  const captureSelection = useCallback(() => {
+    setTimeout(() => {
+      const sel = window.getSelection()
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        setSelection(null)
+        return
+      }
+      const text = sel.toString().trim()
+      if (text.length < 5) {
+        setSelection(null)
+        return
+      }
+      const range = sel.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top + window.scrollY
+      if (x === 0 && y === 0) {
+        setSelection(null)
+        return
+      }
+      setSelection({ text, x, y })
+    }, 100)
   }, [])
+
+  useEffect(() => {
+    document.addEventListener('mouseup', captureSelection)
+    document.addEventListener('touchend', captureSelection)
+    return () => {
+      document.removeEventListener('mouseup', captureSelection)
+      document.removeEventListener('touchend', captureSelection)
+    }
+  }, [captureSelection])
 
   const handleSave = useCallback(async () => {
     if (!selection) return
@@ -55,9 +59,11 @@ export default function TextHighlighter({ contentId, source, children }) {
       }
     }
     document.addEventListener('mousedown', handleDismiss)
+    document.addEventListener('touchstart', handleDismiss)
     document.addEventListener('keydown', handleDismiss)
     return () => {
       document.removeEventListener('mousedown', handleDismiss)
+      document.removeEventListener('touchstart', handleDismiss)
       document.removeEventListener('keydown', handleDismiss)
     }
   }, [selection])
@@ -67,13 +73,13 @@ export default function TextHighlighter({ contentId, source, children }) {
       {children}
 
       {selection && (
-        <div
+        <button
           className="highlight-btn"
           onClick={handleSave}
           style={{
-            position: 'absolute',
-            left: '50%',
-            top: '-12px',
+            position: 'fixed',
+            left: `${selection.x}px`,
+            top: `${selection.y - 12}px`,
             transform: 'translate(-50%, -100%)',
             zIndex: 1000,
             background: saved ? 'var(--green)' : 'var(--accent)',
@@ -90,7 +96,7 @@ export default function TextHighlighter({ contentId, source, children }) {
           }}
         >
           {saved ? '✓ Saved!' : '💾 Save Highlight'}
-        </div>
+        </button>
       )}
     </div>
   )
