@@ -1127,14 +1127,9 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
   .dashboard-notes-column { width: 100%; }
 
   .saved-this-week-card {
-    min-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
-    padding: 20px !important;
-  }
-
-  .saved-this-week-card .greeting,
-  .saved-this-week-card h3,
-  .saved-this-week-card > div > div > div:first-child {
-    font-size: 0.95rem !important;
+    padding: 16px 20px !important;
   }
 }
