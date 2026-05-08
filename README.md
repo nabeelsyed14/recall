@@ -10,7 +10,7 @@ Recall is a personal knowledge hub. Paste a YouTube video or article link — it
 
 ## ✨ Features
 
-- **🔗 Smart Ingestion** — Paste any YouTube or article URL. Transcripts extracted automatically with yt-dlp fallback.
+- **🔗 Smart Ingestion** — Paste any YouTube or article URL. Transcripts extracted via youtube-transcript-api with video description fallback for cloud IPs.
 - **🤖 AI Processing** — Groq (Llama 3.3 70B) generates a 3-sentence summary, 5 key insights, 6 quiz questions with distractors, and genre classification.
 - **📊 Knowledge Graph** — Donut chart showing your library's genre breakdown with percentage stats and custom legend.
 - **🧪 Quiz System** — On-demand MCQ quizzes per content or random shuffle across your entire library. Immediate green/red feedback, accuracy tracking saved to the database.
@@ -20,6 +20,7 @@ Recall is a personal knowledge hub. Paste a YouTube video or article link — it
 - **🔍 Full-Text Search** — Search your entire library by title and content. Debounced input, highlighted matches.
 - **📄 PDF Export** — Export any content as a styled PDF with summary, insights, quiz questions, and highlights.
 - **⌨️ Keyboard Shortcuts** — `Q` to quiz, `N` new note, `S` focus search, `Esc` dismiss modals, `?` shows cheat sheet.
+- **📱 Mobile Responsive** — Adapts to phones and tablets with collapsible sidebar, stacked layouts, and touch-friendly controls.
 - **🔐 Auth** — Supabase Auth with JWT bearer tokens, protected routes, RLS policies on every table.
 
 ---
@@ -32,7 +33,7 @@ Recall is a personal knowledge hub. Paste a YouTube video or article link — it
 | Backend | Python, FastAPI, Uvicorn |
 | Database | Supabase (PostgreSQL) with Row-Level Security |
 | AI | Groq API (Llama 3.3 70B) |
-| Scraping | youtube-transcript-api v1.2.4, custom HTTP scrapers |
+| Scraping | youtube-transcript-api v1.2.4, oEmbed, HTML fallbacks |
 | PDF | fpdf2 |
 
 ---

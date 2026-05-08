@@ -15,6 +15,7 @@ const Icons = {
 
 export default function Layout() {
   const [modalOpen, setModalOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = useNavigate()
 
   function handleLogout() {
@@ -22,37 +23,54 @@ export default function Layout() {
     navigate('/login')
   }
 
+  function closeSidebar() {
+    setSidebarOpen(false)
+  }
+
   const navClass = ({ isActive }) =>
     `nav-link ${isActive ? 'active' : ''}`
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <button
+        className={`hamburger ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label="Toggle menu"
+      >
+        <span /><span /><span />
+      </button>
+
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`}
+        onClick={closeSidebar}
+      />
+
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div style={{ flex: 1 }}>
           <div className="sidebar-brand">Recall</div>
 
-          <button className="btn btn-add-content" onClick={() => setModalOpen(true)}>
+          <button className="btn btn-add-content" onClick={() => { setModalOpen(true); closeSidebar() }}>
             + Add Content
           </button>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <NavLink to="/" className={navClass} end>
+            <NavLink to="/" className={navClass} end onClick={closeSidebar}>
               <span className="nav-icon">{Icons.dashboard}</span>
               Dashboard
             </NavLink>
-            <NavLink to="/library" className={navClass}>
+            <NavLink to="/library" className={navClass} onClick={closeSidebar}>
               <span className="nav-icon">{Icons.library}</span>
               Library
             </NavLink>
-            <NavLink to="/notes" className={navClass}>
+            <NavLink to="/notes" className={navClass} onClick={closeSidebar}>
               <span className="nav-icon">{Icons.notes}</span>
               Notes
             </NavLink>
-            <NavLink to="/highlights" className={navClass}>
+            <NavLink to="/highlights" className={navClass} onClick={closeSidebar}>
               <span className="nav-icon">{Icons.highlights}</span>
               Highlights
             </NavLink>
-            <NavLink to="/quiz" className={navClass}>
+            <NavLink to="/quiz" className={navClass} onClick={closeSidebar}>
               <span className="nav-icon">{Icons.quiz}</span>
               Daily Quiz
             </NavLink>
