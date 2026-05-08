@@ -182,14 +182,15 @@ export default function ContentDetailPage() {
           className="btn btn-secondary"
           onClick={async () => {
             const token = localStorage.getItem('recall_token')
-            const res = await fetch(`/api/content/${data.id}/export`, {
+            const base = import.meta.env.VITE_API_URL || '/api'
+            const res = await fetch(`${base}/content/${data.id}/export`, {
               headers: { Authorization: `Bearer ${token}` }
             })
             const blob = await res.blob()
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = `recall-${data.title.slice(0, 30)}.pdf`
+            a.download = `recall-${data.title.slice(0, 30).replace(/[^a-zA-Z0-9 ]/g, '')}.pdf`
             a.click()
             URL.revokeObjectURL(url)
           }}

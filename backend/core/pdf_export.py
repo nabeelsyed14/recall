@@ -130,4 +130,4 @@ async def generate_content_pdf(content: dict, questions: list[dict], highlights:
             pdf.quote_text(h.get("text", ""))
             pdf.ln(2)
 
-    return pdf.output()
+    return bytes(pdf.output())
