@@ -10,7 +10,7 @@ Recall is a personal knowledge hub. Paste a YouTube video or article link — it
 
 ## ✨ Features
 
-- **🔗 Smart Ingestion** — Paste any YouTube or article URL. Transcripts extracted via youtube-transcript-api with video description fallback for cloud IPs.
+- **🔗 Smart Ingestion** — Paste any YouTube, article, or X/Twitter link. Transcripts extracted via youtube-transcript-api + vxtwitter API with cloud fallbacks.
 - **🤖 AI Processing** — Groq (Llama 3.3 70B) generates a 3-sentence summary, 5 key insights, 6 quiz questions with distractors, and genre classification.
 - **📊 Knowledge Graph** — Donut chart showing your library's genre breakdown with percentage stats and custom legend.
 - **🧪 Quiz System** — On-demand MCQ quizzes per content or random shuffle across your entire library. Immediate green/red feedback, accuracy tracking saved to the database.
@@ -33,7 +33,7 @@ Recall is a personal knowledge hub. Paste a YouTube video or article link — it
 | Backend | Python, FastAPI, Uvicorn |
 | Database | Supabase (PostgreSQL) with Row-Level Security |
 | AI | Groq API (Llama 3.3 70B) |
-| Scraping | youtube-transcript-api v1.2.4, oEmbed, HTML fallbacks |
+| Scraping | youtube-transcript-api v1.2.4, vxtwitter, oEmbed, noembed |
 | PDF | fpdf2 |
 
 ---

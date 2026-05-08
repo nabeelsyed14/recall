@@ -185,19 +185,43 @@ async def extract_youtube(url: str) -> tuple[str, str, int]:
 
 
 async def extract_x_post_text(url: str) -> tuple[str, str]:
-    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-        try:
+    # Extract tweet ID from URL (e.g. x.com/user/status/123456789 or twitter.com/user/status/123)
+    match = re.search(r'/status(?:es)?/(\d+)', url)
+    if not match:
+        return ("Could not extract tweet ID from URL.", "X Post")
+
+    tweet_id = match.group(1)
+
+    # Use vxtwitter API — free, no auth, works from cloud IPs
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"https://api.vxtwitter.com/Twitter/status/{tweet_id}")
+            if resp.status_code == 200:
+                data = resp.json()
+                tweet_text = data.get("text", "")
+                author = data.get("user_name") or data.get("user_screen_name") or "X User"
+                if tweet_text:
+                    title = f"X Post by {author}"
+                    full = f"{tweet_text}\n\n— {author}"
+                    print(f"[SCRAPER] X success via vxtwitter: {len(full)} chars")
+                    return (full, title)
+    except Exception as e:
+        print(f"[SCRAPER] vxtwitter failed: {e}")
+
+    # Fallback: HTML scrape
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
             resp = await client.get(url, headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             })
             if resp.status_code == 200:
                 desc_match = re.search(r'<meta property="og:description" content="(.*?)"', resp.text)
                 title_match = re.search(r'<meta property="og:title" content="(.*?)"', resp.text)
-                text = desc_match.group(1) if desc_match else "X post content unavailable."
-                title = title_match.group(1) if title_match else "X Post"
-                return (text, title)
-        except Exception as e:
-            print(f"[SCRAPER] X scrape failed: {e}")
+                if desc_match and title_match:
+                    return (desc_match.group(1).strip(), title_match.group(1).strip())
+    except Exception as e:
+        print(f"[SCRAPER] X HTML fallback failed: {e}")
+
     return ("X post content could not be extracted.", "X Post")
 
 
