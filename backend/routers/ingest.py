@@ -53,7 +53,7 @@ async def ingest_content(request: IngestRequest, user=Depends(get_current_user))
             c = cached[0]
             return IngestResponse(status="success", message="Already in your library.", content_id=c["id"], title=c.get("title") or "Untitled", topic_name="")
 
-        raw_text, extracted_title = await scrape_url(url)
+        raw_text, extracted_title, duration_seconds = await scrape_url(url)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -97,6 +97,8 @@ async def ingest_content(request: IngestRequest, user=Depends(get_current_user))
                 "raw_text": raw_text,
                 "summary": content_meta.get("summary", ""),
                 "key_insights": json.dumps(content_meta.get("key_insights", [])),
+                "duration_seconds": duration_seconds,
+                "word_count": len(raw_text.split()),
             },
         )
         content_id = content_rows[0]["id"]
@@ -137,7 +139,7 @@ async def get_content_detail(content_id: int, user=Depends(get_current_user)):
     user_id = user["user_id"]
     try:
         query = (
-            f"select=id,title,source_url,summary,key_insights,created_at,raw_text,"
+            f"select=id,title,source_url,summary,key_insights,created_at,word_count,duration_seconds,"
             f"questions(id)"
             f"&id=eq.{content_id}&user_id=eq.{user_id}"
         )
@@ -158,13 +160,17 @@ async def get_content_detail(content_id: int, user=Depends(get_current_user)):
             elif isinstance(ki_raw, list):
                 ki = ki_raw
 
-        raw_text = c.get("raw_text") or ""
-        word_count = len(raw_text.split())
+        word_count = c.get("word_count", 0)
         url = c.get("source_url") or ""
         is_video = "youtube.com" in url or "youtu.be" in url
-        wpm = 150 if is_video else 200
-        time_mins = max(1, round(word_count / wpm))
-        time_est = f"~{time_mins} min {'watch' if is_video else 'read'}"
+        dur = c.get("duration_seconds", 0)
+        if dur and dur > 0:
+            time_mins = max(1, round(dur / 60))
+            time_est = f"{time_mins} min watch"
+        else:
+            wpm = 150 if is_video else 200
+            time_mins = max(1, round(word_count / wpm)) if word_count > 0 else 1
+            time_est = f"~{time_mins} min {'watch' if is_video else 'read'}"
 
         return ContentDetailResponse(
             id=c["id"],
@@ -288,6 +294,8 @@ async def export_content_pdf(content_id: int, user=Depends(get_current_user)):
         return Response(content=pdf_bytes, media_type="application/pdf",
                         headers={"Content-Disposition": f"attachment; filename=recall-content-{content_id}.pdf"})
     except Exception as e:
+        import traceback
+        print(f"[EXPORT PDF ERROR] {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -298,8 +306,9 @@ async def chat_with_content(content_id: int, request: ChatRequest, user=Depends(
 
     user_msg_count = sum(1 for m in request.history if m.get("role") == "user")
     if user_msg_count >= MAX_CHAT_MESSAGES:
+        limit_msg = json.dumps({"content": "You've reached the 10-message limit for this session. Refresh the page to start a new conversation."})
         async def _limit():
-            yield f"data: {json.dumps({'content': 'You\\'ve reached the 10-message limit for this session. Refresh the page to start a new conversation.'})}\n\ndata: [DONE]\n\n"
+            yield f"data: {limit_msg}\n\ndata: [DONE]\n\n"
 
         return StreamingResponse(_limit(), media_type="text/event-stream")
 

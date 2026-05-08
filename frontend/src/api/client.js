@@ -176,6 +176,10 @@ export function deleteHighlight(contentId, highlightId) {
   });
 }
 
+export function dismissOnboarding() {
+  return request('/auth/onboarding/dismiss', { method: 'POST' });
+}
+
 // Notes
 export function getNotes() {
   return request('/notes');

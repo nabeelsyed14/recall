@@ -25,7 +25,7 @@ async def get_home(user=Depends(get_current_user)):
     
     try:
         # 1. Total items saved
-        content_rows = await select_rows(token, "content", f"select=id,title,source_url,created_at,raw_text,topics(name,genre)&user_id=eq.{user_id}")
+        content_rows = await select_rows(token, "content", f"select=id,title,source_url,created_at,word_count,duration_seconds,topics(name,genre)&user_id=eq.{user_id}")
         items_saved = len(content_rows)
         
         # 2. Accuracy percentage
@@ -94,10 +94,15 @@ async def get_home(user=Depends(get_current_user)):
             elif "twitter.com" in url or "x.com" in url:
                 source_type = "x"
 
-            raw = c.get("raw_text") or ""
-            wpm = 150 if is_video else 200
-            mins = max(1, round(len(raw.split()) / wpm))
-            time_est = f"~{mins} min {'watch' if is_video else 'read'}"
+            dur = c.get("duration_seconds", 0)
+            if dur and dur > 0:
+                mins = max(1, round(dur / 60))
+                time_est = f"{mins} min watch"
+            else:
+                wc = c.get("word_count", 0)
+                wpm = 150 if is_video else 200
+                mins = max(1, round(wc / wpm)) if wc > 0 else 1
+                time_est = f"~{mins} min {'watch' if is_video else 'read'}"
 
             topic = c.get("topics") or {}
 
@@ -142,7 +147,7 @@ async def get_library(user=Depends(get_current_user)):
     try:
         query = (
             "select=id,name,genre,"
-            "content(id,title,source_url,created_at,raw_text,"
+            "content(id,title,source_url,created_at,word_count,duration_seconds,"
             "questions(id))"
             f"&user_id=eq.{user_id}"
         )
@@ -160,7 +165,10 @@ async def get_library(user=Depends(get_current_user)):
                 if r.get("was_correct"):
                     quiz_by_content[cid]["correct"] += 1
 
-        def _time_estimate(word_count, is_video):
+        def _time_estimate(word_count, is_video, duration_seconds=0):
+            if duration_seconds and duration_seconds > 0:
+                mins = max(1, round(duration_seconds / 60))
+                return f"{mins} min watch"
             wpm = 150 if is_video else 200
             mins = max(1, round(word_count / wpm))
             label = "watch" if is_video else "read"
@@ -186,9 +194,8 @@ async def get_library(user=Depends(get_current_user)):
                 elif "twitter.com" in url or "x.com" in url:
                     source_type = "x"
 
-                raw_text = c.get("raw_text") or ""
-                word_count = len(raw_text.split())
-                time_est = _time_estimate(word_count, is_video)
+                word_count = c.get("word_count", 0)
+                time_est = _time_estimate(word_count, is_video, c.get("duration_seconds", 0))
 
                 qdata = quiz_by_content.get(c["id"])
                 accuracy = int(round((qdata["correct"] / qdata["total"]) * 100)) if qdata and qdata["total"] > 0 else None
@@ -357,33 +364,42 @@ async def search_content(q: str, user=Depends(get_current_user)):
             f"&limit=20"
         )
         rows = await select_rows(token, "content", query)
+    except SupabaseError:
+        try:
+            query = (
+                f"select=id,title,source_url,created_at,summary,topics!inner(name,genre)"
+                f"&user_id=eq.{user_id}"
+                f"&or=(title.ilike.*{q}*,summary.ilike.*{q}*)"
+                f"&limit=20"
+            )
+            rows = await select_rows(token, "content", query)
+        except SupabaseError as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
-        results = []
-        for r in rows:
-            url = r.get("source_url", "")
-            source_type = "article"
-            if "youtube.com" in url or "youtu.be" in url:
-                source_type = "youtube"
-            elif "twitter.com" in url or "x.com" in url:
-                source_type = "x"
+    results = []
+    for r in rows:
+        url = r.get("source_url", "")
+        source_type = "article"
+        if "youtube.com" in url or "youtu.be" in url:
+            source_type = "youtube"
+        elif "twitter.com" in url or "x.com" in url:
+            source_type = "x"
 
-            topic = r.get("topics") or {}
-            summary = r.get("summary") or ""
-            snippet = summary[:200] if summary else ""
+        topic = r.get("topics") or {}
+        summary = r.get("summary") or ""
+        snippet = summary[:200] if summary else ""
 
-            results.append(SearchResultItem(
-                id=r["id"],
-                title=r.get("title") or "Untitled",
-                url=url,
-                source_type=source_type,
-                date_saved=r.get("created_at", "")[:10],
-                topic_name=topic.get("name") or "Uncategorized",
-                genre=topic.get("genre") or "General",
-                snippet=snippet,
-            ))
-        return results
-    except SupabaseError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        results.append(SearchResultItem(
+            id=r["id"],
+            title=r.get("title") or "Untitled",
+            url=url,
+            source_type=source_type,
+            date_saved=r.get("created_at", "")[:10],
+            topic_name=topic.get("name") or "Uncategorized",
+            genre=topic.get("genre") or "General",
+            snippet=snippet,
+        ))
+    return results
 
 
 @router.get("/highlights", response_model=list[AllHighlightsResponse])

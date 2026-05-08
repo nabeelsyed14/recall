@@ -180,7 +180,19 @@ export default function ContentDetailPage() {
         </button>
         <button
           className="btn btn-secondary"
-          onClick={() => window.open(`/api/content/${data.id}/export`, '_blank')}
+          onClick={async () => {
+            const token = localStorage.getItem('recall_token')
+            const res = await fetch(`/api/content/${data.id}/export`, {
+              headers: { Authorization: `Bearer ${token}` }
+            })
+            const blob = await res.blob()
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `recall-${data.title.slice(0, 30)}.pdf`
+            a.click()
+            URL.revokeObjectURL(url)
+          }}
         >
           Export PDF
         </button>

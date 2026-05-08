@@ -18,6 +18,7 @@ export default function KeyboardShortcuts() {
     function handleKeyDown(e) {
       const tag = (e.target.tagName || '').toLowerCase()
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+      if (document.querySelector('[data-chat-panel]')) return
 
       if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()

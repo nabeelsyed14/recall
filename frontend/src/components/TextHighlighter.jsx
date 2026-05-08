@@ -1,32 +1,42 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { saveHighlight } from '../api/client'
 
 export default function TextHighlighter({ contentId, source, children }) {
   const [selection, setSelection] = useState(null)
   const [saved, setSaved] = useState(false)
 
-  const handleMouseUp = useCallback((e) => {
-    const sel = window.getSelection()
-    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
-      setSelection(null)
-      return
+  useEffect(() => {
+    function handleMouseUp() {
+      setTimeout(() => {
+        const sel = window.getSelection()
+        if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+          setSelection(null)
+          return
+        }
+        const text = sel.toString().trim()
+        if (text.length < 5) {
+          setSelection(null)
+          return
+        }
+        const range = sel.getRangeAt(0)
+        const rect = range.getBoundingClientRect()
+        const x = rect.left + rect.width / 2
+        const y = rect.top + window.scrollY
+        if (x === 0 && y === 0) {
+          setSelection(null)
+          return
+        }
+        setSelection({ text, x, y })
+      }, 10)
     }
 
-    const text = sel.toString().trim()
-    if (text.length < 5) {
-      setSelection(null)
-      return
-    }
-
-    const range = sel.getRangeAt(0)
-    const rect = range.getBoundingClientRect()
-
-    setSelection({ text, x: rect.left + rect.width / 2, y: rect.top - 10 })
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => document.removeEventListener('mouseup', handleMouseUp)
   }, [])
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!selection) return
     try {
-      const { saveHighlight } = await import('../api/client')
       await saveHighlight(contentId, selection.text, source)
       setSaved(true)
       setTimeout(() => {
@@ -36,28 +46,24 @@ export default function TextHighlighter({ contentId, source, children }) {
     } catch {
       setSelection(null)
     }
-  }
+  }, [selection, contentId, source])
 
   useEffect(() => {
-    function handleClick(e) {
+    function handleDismiss(e) {
       if (selection && !e.target.closest('.highlight-btn')) {
         setSelection(null)
       }
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('mousedown', handleDismiss)
+    document.addEventListener('keydown', handleDismiss)
+    return () => {
+      document.removeEventListener('mousedown', handleDismiss)
+      document.removeEventListener('keydown', handleDismiss)
+    }
   }, [selection])
 
-  useEffect(() => {
-    function handleEscape() {
-      setSelection(null)
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [])
-
   return (
-    <div onMouseUp={handleMouseUp} style={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }}>
       {children}
 
       {selection && (
@@ -65,25 +71,25 @@ export default function TextHighlighter({ contentId, source, children }) {
           className="highlight-btn"
           onClick={handleSave}
           style={{
-            position: 'fixed',
-            left: `${selection.x}px`,
-            top: `${selection.y}px`,
+            position: 'absolute',
+            left: '50%',
+            top: '-12px',
             transform: 'translate(-50%, -100%)',
             zIndex: 1000,
             background: saved ? 'var(--green)' : 'var(--accent)',
             color: '#fff',
             border: 'none',
             borderRadius: '12px',
-            padding: '8px 16px',
-            fontSize: '0.85rem',
+            padding: '10px 20px',
+            fontSize: '0.9rem',
             fontWeight: 700,
             cursor: 'pointer',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-            transition: 'all 0.2s ease',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.25)',
             whiteSpace: 'nowrap',
+            animation: 'toastIn 0.2s ease',
           }}
         >
-          {saved ? '✓ Saved' : '💾 Save Highlight'}
+          {saved ? '✓ Saved!' : '💾 Save Highlight'}
         </div>
       )}
     </div>

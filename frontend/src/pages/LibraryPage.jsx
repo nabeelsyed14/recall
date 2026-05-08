@@ -142,47 +142,50 @@ export default function LibraryPage() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ height: '400px', width: '100%', position: 'relative', marginBottom: '48px' }}>
               {/* Center Text */}
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                textAlign: 'center',
-                zIndex: 1
-              }}>
-                <div style={{ fontSize: '64px', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {totalTopics}
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  textAlign: 'center',
+                  zIndex: 10,
+                  pointerEvents: 'none',
+                }}>
+                  <div style={{ fontSize: '64px', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
+                    {totalTopics}
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>
+                    Topics Explored
+                  </div>
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>
-                  Topics Explored
-                </div>
-              </div>
 
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={topicStats}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={130}
-                    outerRadius={175}
-                    paddingAngle={6}
-                    dataKey="count"
-                    nameKey="name"
-                    stroke="none"
-                    animationDuration={1500}
-                    animationBegin={200}
-                  >
-                    {topicStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 12px 32px rgba(0,0,0,0.15)' }}
-                    itemStyle={{ fontWeight: 700 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={topicStats}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={130}
+                      outerRadius={175}
+                      paddingAngle={6}
+                      dataKey="count"
+                      nameKey="name"
+                      stroke="none"
+                      animationDuration={1500}
+                      animationBegin={200}
+                    >
+                      {topicStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      position={{ x: 0, y: 0 }}
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 12px 32px rgba(0,0,0,0.15)', background: '#fff', padding: '12px 18px' }}
+                      itemStyle={{ fontWeight: 700, fontSize: '0.85rem' }}
+                      formatter={(value, name) => [`${value} item${value !== 1 ? 's' : ''}`, name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
             </div>
 
             {/* Custom Legend */}

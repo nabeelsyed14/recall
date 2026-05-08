@@ -100,7 +100,7 @@ export default function ChatPanel({ contentId, onClose }) {
   }
 
   return (
-    <div style={{
+    <div data-chat-panel style={{
       display: 'flex',
       flexDirection: 'column',
       height: '500px',

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { request } from '../api/client'
+import { dismissOnboarding } from '../api/client'
 
 const steps = [
   {
@@ -24,7 +24,7 @@ export default function OnboardingOverlay({ onDismiss }) {
 
   const handleDismiss = async () => {
     try {
-      await request('/auth/onboarding/dismiss', { method: 'POST' })
+      await dismissOnboarding()
     } catch {}
     onDismiss()
   }

@@ -6,19 +6,32 @@ from youtube_transcript_api import YouTubeTranscriptApi
 MAX_CHARS = 6000  # Pass up to 6000 chars to Groq
 
 
-async def scrape_url(url: str) -> tuple[str, str]:
+async def scrape_url(url: str) -> tuple[str, str, int]:
     """
-    Extracts raw text content and a title from a given URL.
-    Returns (text, title).
+    Extracts raw text content, title, and video duration (seconds) from a given URL.
+    Returns (text, title, duration_seconds). duration_seconds is 0 for non-video sources.
     """
     domain = urlparse(url).netloc
 
     if "youtube.com" in domain or "youtu.be" in domain:
         return await extract_youtube_transcript(url)
     elif "twitter.com" in domain or "x.com" in domain:
-        return await extract_x_post_text(url)
+        text, title = await extract_x_post_text(url)
+        return (text, title, 0)
     else:
-        return await extract_article_text(url)
+        text, title = await extract_article_text(url)
+        return (text, title, 0)
+
+
+def _parse_iso_duration(dur: str) -> int:
+    """Parse ISO 8601 duration like PT9M30S to total seconds."""
+    match = re.search(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', dur)
+    if not match:
+        return 0
+    h = int(match.group(1) or 0)
+    m = int(match.group(2) or 0)
+    s = int(match.group(3) or 0)
+    return h * 3600 + m * 60 + s
 
 
 def _get_video_id(url: str) -> str | None:
@@ -28,29 +41,38 @@ def _get_video_id(url: str) -> str | None:
     return parse_qs(parsed.query).get("v", [None])[0]
 
 
-async def extract_youtube_transcript(url: str) -> tuple[str, str]:
+async def extract_youtube_transcript(url: str) -> tuple[str, str, int]:
     """
     Extracts the transcript from a YouTube video using the youtube-transcript-api library.
     Tries: English (manual), English (auto-generated), any available language.
-    Returns (transcript_text, video_title).
+    Returns (transcript_text, video_title, duration_seconds).
     """
     video_id = _get_video_id(url)
     if not video_id:
-        return ("Could not extract video ID.", "YouTube Video")
+        return ("Could not extract video ID.", "YouTube Video", 0)
 
     title = "YouTube Video"
     transcript_text = ""
+    duration_seconds = 0
 
     async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
-        # Fetch video page to get title
+        # Fetch video page to get title and duration
         try:
             page_resp = await client.get(f"https://www.youtube.com/watch?v={video_id}", headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             })
             if page_resp.status_code == 200:
-                title_match = re.search(r"<title>(.*?)</title>", page_resp.text)
+                html = page_resp.text
+                title_match = re.search(r"<title>(.*?)</title>", html)
                 if title_match:
                     title = title_match.group(1).replace(" - YouTube", "").strip()
+                dur_match = re.search(r'"lengthSeconds"\s*:\s*"(\d+)"', html)
+                if dur_match:
+                    duration_seconds = int(dur_match.group(1))
+                else:
+                    iso_match = re.search(r'<meta itemprop="duration" content="(PT[\dHMS]+)"', html)
+                    if iso_match:
+                        duration_seconds = _parse_iso_duration(iso_match.group(1))
         except Exception as e:
             print(f"[SCRAPER] Could not fetch YouTube page for title: {e}")
 
@@ -109,10 +131,10 @@ async def extract_youtube_transcript(url: str) -> tuple[str, str]:
             pass
 
     if not transcript_text:
-        # Explicit error message as requested by user
         raise ValueError("This video does not have captions available — try a different video")
 
-    return (transcript_text, title)
+    print(f"[SCRAPER] Duration extracted: {duration_seconds}s ({duration_seconds // 60}m {duration_seconds % 60}s)")
+    return (transcript_text, title, duration_seconds)
 
 
 async def extract_x_post_text(url: str) -> tuple[str, str]:
