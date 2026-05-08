@@ -1,35 +1,123 @@
-# Recall
+# 🧠 Recall
 
-Recall is a premium AI-powered knowledge retention and personal learning journal. It helps you capture, summarize, and master content from across the web using intelligent ingestion and active recall techniques.
+**Turn anything you consume online into retained, queryable knowledge.**
 
-## Features
+Recall is a personal knowledge hub. Paste a YouTube video or article link — it pulls the transcript, generates a summary, key insights, quiz questions, and groups everything by genre. Quiz yourself, take notes, save highlights, and chat with your content.
 
-- **Multi-Source Ingestion**: Capture content from YouTube (with transcripts), articles, and social media.
-- **AI-Powered Summaries**: Automatically generate concise summaries and key insights using LLMs.
-- **Active Recall Quizzes**: Generate interactive multiple-choice quizzes from your saved content to strengthen memory.
-- **Premium Analytics**: Visualize your learning progress with a high-end Knowledge Graph.
-- **Personalized Notes**: A distraction-free environment for deep thought and synthesis.
-- **Premium SaaS UI**: A stunning, responsive interface with animated backgrounds, 3D card effects, and fluid transitions.
+[**Try it live →**](https://recall-eight-self.vercel.app/)
 
-## Technology Stack
+---
 
-- **Frontend**: React (Vite), Recharts, Lucide React, Vanilla CSS.
-- **Backend**: Python (FastAPI), Supabase (PostgreSQL), Groq (AI Orchestration).
-- **Ingestion**: YouTube Transcript API, Custom Web Scrapers.
+## ✨ Features
 
-## Setup & Installation
+- **🔗 Smart Ingestion** — Paste any YouTube or article URL. Transcripts extracted automatically with yt-dlp fallback.
+- **🤖 AI Processing** — Groq (Llama 3.3 70B) generates a 3-sentence summary, 5 key insights, 6 quiz questions with distractors, and genre classification.
+- **📊 Knowledge Graph** — Donut chart showing your library's genre breakdown with percentage stats and custom legend.
+- **🧪 Quiz System** — On-demand MCQ quizzes per content or random shuffle across your entire library. Immediate green/red feedback, accuracy tracking saved to the database.
+- **📝 Notes** — Full markdown notes editor with lined-paper texture. Create, edit, delete. Markdown rendering when viewing.
+- **💡 Highlights** — Select any text in a summary to save it. A floating button appears — click to save. Browse all highlights in one place.
+- **💬 Chat with Content** — Ask AI questions about any piece you've saved. Responses stream in token-by-token. 10-message session cap.
+- **🔍 Full-Text Search** — Search your entire library by title and content. Debounced input, highlighted matches.
+- **📄 PDF Export** — Export any content as a styled PDF with summary, insights, quiz questions, and highlights.
+- **⌨️ Keyboard Shortcuts** — `Q` to quiz, `N` new note, `S` focus search, `Esc` dismiss modals, `?` shows cheat sheet.
+- **🔐 Auth** — Supabase Auth with JWT bearer tokens, protected routes, RLS policies on every table.
+
+---
+
+## 🏗️ Stack
+
+| Layer | Tech |
+|---|---|
+| Frontend | React 18, Vite 5, React Router 6, Recharts, React Markdown |
+| Backend | Python, FastAPI, Uvicorn |
+| Database | Supabase (PostgreSQL) with Row-Level Security |
+| AI | Groq API (Llama 3.3 70B) |
+| Scraping | youtube-transcript-api v1.2.4, custom HTTP scrapers |
+| PDF | fpdf2 |
+
+---
+
+## 🚀 Run Locally
+
+### You'll need
+- Python 3.11+
+- Node.js 18+
+- A Supabase project (free tier works)
+- A Groq API key ([console.groq.com](https://console.groq.com))
 
 ### Backend
-1. Navigate to `backend/`.
-2. Install dependencies: `pip install -r requirements.txt`.
-3. Configure your `.env` file with Supabase and Groq credentials.
-4. Run the server: `python run.py`.
+
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate        # or: source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Create a `.env` in `backend/`:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-anon-key
+JWT_SECRET=your-jwt-secret
+GROQ_API_KEY=your-groq-key
+FRONTEND_URL=http://localhost:3000
+```
+
+```bash
+python -m uvicorn main:app --reload --port 8000
+```
 
 ### Frontend
-1. Navigate to `frontend/`.
-2. Install dependencies: `npm install`.
-3. Start the development server: `npm run dev`.
 
-## License
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Or both at once
+
+```bash
+python run.py
+```
+
+---
+
+## 🗄️ Database
+
+Run these in your Supabase SQL Editor, in order:
+
+1. `migration_v4_search.sql` — full-text search indexes
+2. `migration_v5_highlights.sql` — highlights table + RLS
+3. `migration_v6_onboarding.sql` — onboarding flag for new users
+4. `migration_v7_duration.sql` — video duration tracking
+5. `migration_v8_wordcount.sql` — pre-calculated word counts for fast loading
+
+---
+
+## 📁 Structure
+
+```
+recall/
+├── backend/
+│   ├── core/           # AI, scraper, PDF export, Supabase client
+│   ├── routers/        # auth, ingest, review, notes
+│   ├── schemas/        # Pydantic request/response models
+│   ├── main.py         # FastAPI entry point
+│   └── Procfile        # process runner
+├── frontend/
+│   ├── src/
+│   │   ├── api/        # fetch wrapper with JWT
+│   │   ├── components/ # Layout, modals, chat panel, search bar
+│   │   └── pages/      # Dashboard, library, quiz, notes, highlights
+│   └── vercel.json     # SPA routing
+├── railway.toml
+└── run.py              # launches both services
+```
+
+---
+
+## 📄 License
 
 MIT
