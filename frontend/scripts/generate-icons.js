@@ -4,7 +4,8 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const PUBLIC_DIR = join(__dirname, 'public')
+const FRONTEND_DIR = join(__dirname, '..')
+const PUBLIC_DIR = join(FRONTEND_DIR, 'public')
 const ICONS_DIR = join(PUBLIC_DIR, 'icons')
 const LOGO_PATH = join(PUBLIC_DIR, 'logo.png')
 
