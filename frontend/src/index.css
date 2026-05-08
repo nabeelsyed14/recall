@@ -1066,9 +1066,9 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
   .insights-list li { font-size: 0.9rem; }
 
   .saved-this-week-card {
-    min-width: 260px !important;
-    max-width: 260px !important;
-    padding: 24px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 20px !important;
   }
 
   .dashboard-notes-column {
@@ -1132,11 +1132,23 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
   .dashboard-notes-column { width: 100%; }
 
   .saved-this-week-card {
-    min-width: 100% !important;
-    max-width: 100% !important;
+    width: 100% !important;
     box-sizing: border-box !important;
     padding: 14px 16px !important;
     overflow: hidden;
+  }
+
+  .saved-this-week-card > div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .saved-this-week-card div[style*="gap"] {
+    flex-wrap: wrap;
+  }
+
+  button[title="Keyboard shortcuts (?)"] {
+    display: none;
   }
 
   .saved-this-week-card > div {
