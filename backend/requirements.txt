@@ -4,4 +4,5 @@ httpx
 pydantic-settings
 python-dotenv
 youtube-transcript-api
+yt-dlp
 fpdf2

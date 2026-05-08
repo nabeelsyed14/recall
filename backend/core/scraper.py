@@ -1,4 +1,6 @@
 import re
+import subprocess
+import json as json_module
 import httpx
 from urllib.parse import urlparse, parse_qs
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -117,6 +119,36 @@ async def extract_youtube_transcript(url: str) -> tuple[str, str, int]:
 
     except Exception as e_outer:
         print(f"[SCRAPER] CRITICAL: YouTubeTranscriptApi instance failure: {e_outer}")
+
+    # Fallback: yt-dlp for cloud IPs (Railway, etc.)
+    if (not transcript_text) or (len(transcript_text) < 100):
+        try:
+            print("[SCRAPER] Trying yt-dlp fallback...")
+            import yt_dlp
+            ydl_opts = {
+                "writesubtitles": True,
+                "writeautomaticsub": True,
+                "subtitleslangs": ["en"],
+                "skip_download": True,
+                "quiet": True,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+            subs = info.get("subtitles") or info.get("automatic_captions") or {}
+            en_subs = subs.get("en") or subs.get("en-US") or subs.get("en-GB")
+            if en_subs:
+                sub_url = en_subs[-1]["url"]
+                async with httpx.AsyncClient(timeout=15) as client:
+                    sub_resp = await client.get(sub_url)
+                    if sub_resp.status_code == 200:
+                        raw = sub_resp.text
+                        import xml.etree.ElementTree as ET
+                        root = ET.fromstring(raw)
+                        texts = [t.text or "" for t in root.iter("text")]
+                        transcript_text = " ".join(texts)
+                        print(f"[SCRAPER] yt-dlp success: {len(transcript_text)} chars")
+        except Exception as yt_err:
+            print(f"[SCRAPER] yt-dlp fallback failed: {yt_err}")
 
     # Bug 2 Fix: Fallback to description if transcript fails but description is over 100 chars
     if (not transcript_text) or (len(transcript_text) < 100):
