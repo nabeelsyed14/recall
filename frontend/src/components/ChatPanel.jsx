@@ -44,7 +44,8 @@ export default function ChatPanel({ contentId, onClose }) {
 
     try {
       const token = localStorage.getItem('recall_token')
-      const res = await fetch(`/api/content/${contentId}/chat`, {
+      const base = import.meta.env.VITE_API_URL || '/api'
+      const res = await fetch(`${base}/content/${contentId}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
