@@ -165,7 +165,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div style={{ width: '400px' }}>
+        <div className="dashboard-notes-column">
           <div className="flex justify-between items-center mb-24">
             <div className="label">RECENT NOTES</div>
             <button className="btn btn-ghost" onClick={() => navigate('/notes')} style={{ padding: '4px 12px', fontSize: '0.85rem', fontWeight: 800 }}>

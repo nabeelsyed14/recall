@@ -978,6 +978,11 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
 
 /* ========== Mobile Responsive ========== */
 
+.dashboard-notes-column {
+  width: 400px;
+  flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   .hamburger { display: flex; }
 
@@ -1011,7 +1016,7 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
 
   .stat-grid {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px;
+    gap: 16px;
   }
 
   .stat-card {
@@ -1065,6 +1070,10 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
     padding: 24px !important;
   }
 
+  .dashboard-notes-column {
+    width: 100%;
+  }
+
   .flex.gap-64 { flex-direction: column; gap: 32px; }
 }
 
@@ -1073,9 +1082,12 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
 
   .stat-grid {
     grid-template-columns: 1fr !important;
-    gap: 12px;
+    gap: 16px;
     margin-bottom: 32px;
   }
+
+  .stat-value { font-size: 28px; }
+  .stat-card { min-height: 100px; padding: 14px 16px; }
 
   .greeting { font-size: 22px; }
 
@@ -1111,4 +1123,18 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
   .library-item-card .item-title { font-size: 1rem; }
 
   .notes-editor { min-height: 300px; }
+
+  .dashboard-notes-column { width: 100%; }
+
+  .saved-this-week-card {
+    min-width: 100% !important;
+    max-width: 100% !important;
+    padding: 20px !important;
+  }
+
+  .saved-this-week-card .greeting,
+  .saved-this-week-card h3,
+  .saved-this-week-card > div > div > div:first-child {
+    font-size: 0.95rem !important;
+  }
 }
