@@ -7,6 +7,7 @@ import LibraryPage from './pages/LibraryPage'
 import QuizPage from './pages/QuizPage'
 import ContentDetailPage from './pages/ContentDetailPage'
 import NotesPage from './pages/NotesPage'
+import HighlightsPage from './pages/HighlightsPage'
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) {
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="library" element={<LibraryPage />} />
         <Route path="quiz" element={<QuizPage />} />
         <Route path="notes" element={<NotesPage />} />
+        <Route path="highlights" element={<HighlightsPage />} />
         <Route path="content/:id" element={<ContentDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

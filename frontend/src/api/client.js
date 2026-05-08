@@ -16,6 +16,14 @@ export function getEmail() {
   return localStorage.getItem('recall_email');
 }
 
+export function setOnboardingComplete(val) {
+  localStorage.setItem('recall_onboarding', val ? '1' : '0');
+}
+
+export function isOnboardingComplete() {
+  return localStorage.getItem('recall_onboarding') === '1';
+}
+
 export function formatDate(dateStr) {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -78,6 +86,7 @@ export async function login(email, password) {
   });
   setToken(data.access_token);
   setEmail(data.email);
+  setOnboardingComplete(data.onboarding_complete);
   return data;
 }
 
@@ -88,6 +97,7 @@ export async function register(email, password) {
   });
   setToken(data.access_token);
   setEmail(data.email);
+  setOnboardingComplete(data.onboarding_complete);
   return data;
 }
 
@@ -136,6 +146,33 @@ export function recordQuiz(questionId, wasCorrect) {
   return request('/review/record', {
     method: 'POST',
     body: JSON.stringify({ question_id: questionId, was_correct: wasCorrect }),
+  });
+}
+
+// Search
+export function searchContent(query) {
+  return request(`/search?q=${encodeURIComponent(query)}`);
+}
+
+// Highlights
+export function saveHighlight(contentId, text, source) {
+  return request(`/content/${contentId}/highlights`, {
+    method: 'POST',
+    body: JSON.stringify({ text, source }),
+  });
+}
+
+export function getContentHighlights(contentId) {
+  return request(`/content/${contentId}/highlights`);
+}
+
+export function getAllHighlights() {
+  return request('/highlights');
+}
+
+export function deleteHighlight(contentId, highlightId) {
+  return request(`/content/${contentId}/highlights/${highlightId}`, {
+    method: 'DELETE',
   });
 }
 

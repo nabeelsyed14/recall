@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLibrary, getTopicStats, deleteContent, formatDate } from '../api/client'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import SearchBar from '../components/SearchBar'
 
 const TrashIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -90,11 +91,11 @@ export default function LibraryPage() {
           <h1 className="greeting" style={{ marginBottom: 0 }}>Library</h1>
           <button className="btn btn-ghost" disabled>Syncing...</button>
         </div>
-        <div className="skeleton" style={{ height: '300px', marginBottom: '48px', borderRadius: '24px' }} />
+        <div className="skeleton-detail-block" style={{ height: '300px', marginBottom: '48px' }} />
         {[1, 2].map(i => (
           <div key={i} style={{ marginBottom: '48px' }}>
-            <div className="skeleton" style={{ height: '24px', width: '30%', marginBottom: '24px', borderRadius: '12px' }} />
-            <div className="skeleton" style={{ height: '120px', marginBottom: '16px', borderRadius: '24px' }} />
+            <div className="skeleton-detail-line" style={{ width: '30%', marginBottom: '24px' }} />
+            <div className="skeleton-card" />
           </div>
         ))}
       </div>
@@ -121,12 +122,14 @@ export default function LibraryPage() {
         />
       )}
 
-      <div className="flex justify-between items-center mb-48">
+      <div className="flex justify-between items-center mb-24">
         <h1 className="greeting" style={{ marginBottom: 0 }}>Library</h1>
         <button className="btn btn-secondary" onClick={loadData}>
           ↻ Sync Collection
         </button>
       </div>
+
+      <SearchBar />
 
       {topicStats.length > 0 && (
         <div className="mb-64 card" style={{ 
@@ -252,9 +255,14 @@ export default function LibraryPage() {
                   {item.title}
                 </h3>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="topic-tag">
-                    {item.topic_name}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="topic-tag">
+                      {item.genre || item.topic_name}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      {item.time_estimate}
+                    </span>
+                  </div>
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
                     {formatDate(item.date_saved)}
                   </span>
@@ -286,9 +294,24 @@ export default function LibraryPage() {
                   style={{ padding: '32px' }}
                 >
                   <div style={{ flex: 1, paddingRight: '24px' }}>
-                    <div className="item-title">{item.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <div className="item-title" style={{ marginBottom: 0 }}>{item.title}</div>
+                      {item.accuracy !== null && item.accuracy !== undefined && (
+                        <span style={{
+                          padding: '3px 10px',
+                          borderRadius: '50px',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          background: item.accuracy >= 80 ? 'var(--green-light)' : item.accuracy >= 50 ? '#FEF3C7' : 'var(--red-light)',
+                          color: item.accuracy >= 80 ? 'var(--green)' : item.accuracy >= 50 ? 'var(--amber)' : 'var(--red)',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {item.accuracy}%
+                        </span>
+                      )}
+                    </div>
                     <div className="item-meta">
-                      {formatDate(item.date_saved)} · {item.source_type}
+                      {item.time_estimate} · {formatDate(item.date_saved)} · {item.source_type}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>

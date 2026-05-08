@@ -23,6 +23,8 @@ class ContentDetailResponse(BaseModel):
     key_insights: list[str] = []
     card_count: int
     date_saved: str
+    word_count: int = 0
+    time_estimate: str = ""
 
 
 # --- Library ---
@@ -33,7 +35,10 @@ class ContentLibraryItem(BaseModel):
     source_type: str
     date_saved: str
     topic_name: str
+    genre: str = ""
     card_count: int
+    accuracy: Optional[int] = None
+    time_estimate: str = ""
 
 class TopicCluster(BaseModel):
     name: str
@@ -90,3 +95,35 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
     user_id: str
     email: str
+    onboarding_complete: bool = False
+
+
+# --- Search ---
+class SearchResultItem(BaseModel):
+    id: int
+    title: str
+    url: str
+    source_type: str
+    date_saved: str
+    topic_name: str
+    genre: str
+    snippet: str = ""
+
+
+# --- Highlights ---
+class HighlightCreateRequest(BaseModel):
+    text: str
+    source: str = "summary"
+
+class HighlightResponse(BaseModel):
+    id: int
+    content_id: int
+    text: str
+    source: str
+    created_at: str
+    content_title: str = ""
+
+class AllHighlightsResponse(BaseModel):
+    content_id: int
+    content_title: str
+    highlights: list[HighlightResponse]

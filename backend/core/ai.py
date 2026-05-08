@@ -1,5 +1,6 @@
 import json
 import httpx
+from typing import AsyncGenerator
 from core.config import settings
 
 
@@ -153,3 +154,39 @@ Content:
             "key_insights": ["Content was processed but summary generation failed."],
             "genre": "General"
         }
+
+
+async def stream_chat_response(messages: list[dict], temperature: float = 0.2) -> AsyncGenerator[str, None]:
+    """Streams Groq chat completions token by token."""
+    api_key = settings.GROQ_API_KEY
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY not set")
+
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": messages,
+        "temperature": temperature,
+        "stream": True,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        async with client.stream("POST", url, json=payload, headers=headers) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if line.startswith("data: "):
+                    data = line[6:]
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            yield content
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        continue

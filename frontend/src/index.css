@@ -292,6 +292,84 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
   box-shadow: var(--card-shadow-hover);
 }
 
+.item-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.item-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.topic-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: var(--accent-light);
+  color: var(--accent);
+  text-transform: capitalize;
+}
+
+/* ========== Skeleton Loaders ========== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 16px;
+}
+
+.skeleton-card {
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 24px;
+  height: 120px;
+  margin-bottom: 20px;
+}
+
+.skeleton-stat {
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 24px;
+  height: 160px;
+}
+
+.skeleton-detail-line {
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 12px;
+  height: 20px;
+  margin-bottom: 16px;
+}
+
+.skeleton-detail-block {
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 24px;
+  height: 100px;
+  margin-bottom: 24px;
+}
+
 /* ========== Buttons ========== */
 
 .btn {
@@ -419,6 +497,12 @@ h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
   flex-direction: column;
   justify-content: space-between;
   border-radius: 32px;
+}
+
+.quiz-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
 }
 
 /* ========== Notes Editor ========== */

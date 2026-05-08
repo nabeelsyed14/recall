@@ -31,7 +31,7 @@ export default function QuizPage() {
     return (
       <div>
         <h1 className="greeting">Quiz Hub</h1>
-        <div className="skeleton" style={{ height: '400px', borderRadius: '24px' }} />
+        <div className="skeleton-detail-block" style={{ height: '400px' }} />
       </div>
     )
   }

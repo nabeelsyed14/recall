@@ -85,7 +85,7 @@ export default function NotesPage() {
     return (
       <div>
         <h1 className="mb-32">Notes</h1>
-        <div className="skeleton" style={{ height: '100px' }} />
+        <div className="skeleton-detail-block" />
       </div>
     )
   }

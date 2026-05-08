@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getHome, getEmail, formatDate } from '../api/client'
+import { getHome, getEmail, isOnboardingComplete, setOnboardingComplete, formatDate } from '../api/client'
+import OnboardingOverlay from '../components/OnboardingOverlay'
 
 const Icons = {
   document: (
@@ -21,11 +22,17 @@ export default function DashboardPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
     getHome()
-      .then(setData)
+      .then(d => {
+        setData(d)
+        if (d.items_saved === 0 && !isOnboardingComplete()) {
+          setShowOnboarding(true)
+        }
+      })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
@@ -48,10 +55,10 @@ export default function DashboardPage() {
     return (
       <div>
         <div className="label mb-24">{today.toUpperCase()}</div>
-        <div className="skeleton" style={{ height: '48px', width: '400px', marginBottom: '40px', borderRadius: '12px' }} />
+        <div className="skeleton" style={{ height: '48px', width: '400px', marginBottom: '40px' }} />
         <div className="stat-grid mb-64">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="skeleton" style={{ height: '160px', borderRadius: '24px' }} />
+            <div key={i} className="skeleton-stat" />
           ))}
         </div>
       </div>
@@ -75,6 +82,10 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {showOnboarding && (
+        <OnboardingOverlay onDismiss={() => { setShowOnboarding(false); setOnboardingComplete(true) }} />
+      )}
+
       <div className="label" style={{ marginBottom: '12px' }}>{today.toUpperCase()}</div>
       <h1 className="greeting">{getGreeting()}</h1>
 
@@ -132,7 +143,10 @@ export default function DashboardPage() {
                       <div style={{ fontWeight: 800, marginBottom: '12px', fontSize: '1.2rem', color: 'var(--text-primary)' }}>{item.title}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <span className="topic-tag" style={{ background: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 800 }}>
-                          {item.topic_name}
+                          {item.genre || item.topic_name}
+                        </span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                          {item.time_estimate}
                         </span>
                         <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
                           {formatDate(item.date_saved)}

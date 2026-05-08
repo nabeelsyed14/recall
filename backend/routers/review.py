@@ -8,7 +8,10 @@ from schemas.schemas import (
     NoteResponse,
     TopicStatItem,
     QuizRecordRequest,
-    QuizQuestionResponse
+    QuizQuestionResponse,
+    SearchResultItem,
+    HighlightResponse,
+    AllHighlightsResponse
 )
 from core.security import get_current_user
 from core.supabase import SupabaseError, select_rows, insert_row
@@ -22,7 +25,7 @@ async def get_home(user=Depends(get_current_user)):
     
     try:
         # 1. Total items saved
-        content_rows = await select_rows(token, "content", f"select=id,title,source_url,created_at,topics(name)&user_id=eq.{user_id}")
+        content_rows = await select_rows(token, "content", f"select=id,title,source_url,created_at,raw_text,topics(name,genre)&user_id=eq.{user_id}")
         items_saved = len(content_rows)
         
         # 2. Accuracy percentage
@@ -84,19 +87,30 @@ async def get_home(user=Depends(get_current_user)):
         for c in this_week:
             url = c.get("source_url", "")
             source_type = "article"
+            is_video = False
             if "youtube.com" in url or "youtu.be" in url:
                 source_type = "youtube"
+                is_video = True
             elif "twitter.com" in url or "x.com" in url:
                 source_type = "x"
-                
+
+            raw = c.get("raw_text") or ""
+            wpm = 150 if is_video else 200
+            mins = max(1, round(len(raw.split()) / wpm))
+            time_est = f"~{mins} min {'watch' if is_video else 'read'}"
+
+            topic = c.get("topics") or {}
+
             this_week_items.append(ContentLibraryItem(
                 id=c["id"],
                 title=c.get("title") or "Untitled",
                 url=url,
                 source_type=source_type,
                 date_saved=c.get("created_at", "")[:10],
-                topic_name=(c.get("topics") or {}).get("name") or "Uncategorized",
-                card_count=0 # Not needed for dashboard
+                topic_name=topic.get("name") or "Uncategorized",
+                genre=topic.get("genre") or "General",
+                card_count=0,
+                time_estimate=time_est,
             ))
             
         # 4. Recent notes (last 2)
@@ -127,13 +141,31 @@ async def get_library(user=Depends(get_current_user)):
     token = user["token"]
     try:
         query = (
-            "select=id,name,"
-            "content(id,title,source_url,created_at,"
+            "select=id,name,genre,"
+            "content(id,title,source_url,created_at,raw_text,"
             "questions(id))"
             f"&user_id=eq.{user_id}"
         )
         topics_data = await select_rows(token, "topics", query)
-        
+
+        quiz_rows = await select_rows(token, "quiz_records",
+            f"select=question_id,was_correct,questions!inner(content_id)&user_id=eq.{user_id}")
+        quiz_by_content = {}
+        for r in quiz_rows:
+            cid = (r.get("questions") or {}).get("content_id")
+            if cid:
+                if cid not in quiz_by_content:
+                    quiz_by_content[cid] = {"correct": 0, "total": 0}
+                quiz_by_content[cid]["total"] += 1
+                if r.get("was_correct"):
+                    quiz_by_content[cid]["correct"] += 1
+
+        def _time_estimate(word_count, is_video):
+            wpm = 150 if is_video else 200
+            mins = max(1, round(word_count / wpm))
+            label = "watch" if is_video else "read"
+            return f"~{mins} min {label}"
+
         clusters = []
         for t in topics_data:
             items = []
@@ -144,14 +176,23 @@ async def get_library(user=Depends(get_current_user)):
                 if isinstance(questions, dict):
                     questions = [questions]
                 card_count = len(questions)
-                
+
                 url = c.get("source_url", "")
                 source_type = "article"
+                is_video = False
                 if "youtube.com" in url or "youtu.be" in url:
                     source_type = "youtube"
+                    is_video = True
                 elif "twitter.com" in url or "x.com" in url:
                     source_type = "x"
-                
+
+                raw_text = c.get("raw_text") or ""
+                word_count = len(raw_text.split())
+                time_est = _time_estimate(word_count, is_video)
+
+                qdata = quiz_by_content.get(c["id"])
+                accuracy = int(round((qdata["correct"] / qdata["total"]) * 100)) if qdata and qdata["total"] > 0 else None
+
                 items.append(
                     ContentLibraryItem(
                         id=c["id"],
@@ -160,10 +201,13 @@ async def get_library(user=Depends(get_current_user)):
                         source_type=source_type,
                         date_saved=c.get("created_at", "")[:10],
                         topic_name=t.get("name") or "Uncategorized",
-                        card_count=card_count
+                        genre=t.get("genre") or "General",
+                        card_count=card_count,
+                        accuracy=accuracy,
+                        time_estimate=time_est,
                     )
                 )
-            
+
             if items:
                 clusters.append(
                     TopicCluster(
@@ -296,5 +340,83 @@ async def get_related_content(content_id: int, user=Depends(get_current_user)):
             }
             for r in related_rows
         ]
+    except SupabaseError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/search", response_model=list[SearchResultItem])
+async def search_content(q: str, user=Depends(get_current_user)):
+    user_id = user["user_id"]
+    token = user["token"]
+
+    try:
+        query = (
+            f"select=id,title,source_url,created_at,summary,topics!inner(name,genre)"
+            f"&user_id=eq.{user_id}"
+            f"&search_vector=plfts.{q}"
+            f"&limit=20"
+        )
+        rows = await select_rows(token, "content", query)
+
+        results = []
+        for r in rows:
+            url = r.get("source_url", "")
+            source_type = "article"
+            if "youtube.com" in url or "youtu.be" in url:
+                source_type = "youtube"
+            elif "twitter.com" in url or "x.com" in url:
+                source_type = "x"
+
+            topic = r.get("topics") or {}
+            summary = r.get("summary") or ""
+            snippet = summary[:200] if summary else ""
+
+            results.append(SearchResultItem(
+                id=r["id"],
+                title=r.get("title") or "Untitled",
+                url=url,
+                source_type=source_type,
+                date_saved=r.get("created_at", "")[:10],
+                topic_name=topic.get("name") or "Uncategorized",
+                genre=topic.get("genre") or "General",
+                snippet=snippet,
+            ))
+        return results
+    except SupabaseError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/highlights", response_model=list[AllHighlightsResponse])
+async def get_all_highlights(user=Depends(get_current_user)):
+    user_id = user["user_id"]
+    token = user["token"]
+    try:
+        query = (
+            f"select=id,content_id,text,source,created_at,"
+            f"content!inner(id,title)"
+            f"&user_id=eq.{user_id}&order=created_at.desc"
+        )
+        rows = await select_rows(token, "highlights", query)
+
+        grouped = {}
+        for h in rows:
+            content = h.get("content") or {}
+            cid = content.get("id")
+            if cid not in grouped:
+                grouped[cid] = {
+                    "content_id": cid,
+                    "content_title": content.get("title") or "Untitled",
+                    "highlights": [],
+                }
+            grouped[cid]["highlights"].append(HighlightResponse(
+                id=h["id"],
+                content_id=cid,
+                text=h.get("text", ""),
+                source=h.get("source", "summary"),
+                created_at=h.get("created_at", ""),
+                content_title=content.get("title") or "Untitled",
+            ))
+
+        return list(grouped.values())
     except SupabaseError as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,35 +1,52 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getContentDetail, getRelatedContent, formatDate } from '../api/client'
+import { getContentDetail, getRelatedContent, getContentHighlights, deleteHighlight, formatDate } from '../api/client'
+import TextHighlighter from '../components/TextHighlighter'
+import ChatPanel from '../components/ChatPanel'
 
 export default function ContentDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [related, setRelated] = useState([])
+  const [highlights, setHighlights] = useState([])
+  const [showChat, setShowChat] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
+  const load = () => {
     Promise.all([
       getContentDetail(id),
-      getRelatedContent(id)
+      getRelatedContent(id),
+      getContentHighlights(id)
     ])
-      .then(([detailData, relatedData]) => {
+      .then(([detailData, relatedData, highlightsData]) => {
         setData(detailData)
         setRelated(relatedData || [])
+        setHighlights(highlightsData || [])
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
-  }, [id])
+  }
+
+  useEffect(() => { load() }, [id])
+
+  const handleDeleteHighlight = async (highlightId) => {
+    try {
+      await deleteHighlight(Number(id), highlightId)
+      setHighlights(prev => prev.filter(h => h.id !== highlightId))
+    } catch (err) {
+      alert(err.message)
+    }
+  }
 
   if (loading) {
     return (
       <div>
-        <div className="skeleton mb-24" style={{ height: '40px', width: '60%' }} />
-        <div className="skeleton mb-32" style={{ height: '20px', width: '40%' }} />
-        <div className="skeleton mb-24" style={{ height: '100px' }} />
-        <div className="skeleton" style={{ height: '150px' }} />
+        <div className="skeleton-detail-line" style={{ height: '40px', width: '60%', marginBottom: '24px' }} />
+        <div className="skeleton-detail-line" style={{ width: '40%', marginBottom: '32px' }} />
+        <div className="skeleton-detail-block" />
+        <div className="skeleton-detail-block" style={{ height: '150px' }} />
       </div>
     )
   }
@@ -71,14 +88,21 @@ export default function ContentDetailPage() {
         <span style={{ color: 'var(--text-secondary)', marginLeft: '16px', fontSize: '0.85rem' }}>
           {formatDate(data.date_saved)}
         </span>
+        {data.time_estimate && (
+          <span style={{ color: 'var(--text-secondary)', marginLeft: '16px', fontSize: '0.85rem', fontWeight: 700 }}>
+            {data.time_estimate}
+          </span>
+        )}
       </div>
 
-      <div className="card summary-card mb-32">
-        <div className="label mb-16">SUMMARY</div>
-        <p style={{ lineHeight: '1.7', fontSize: '1rem' }}>
-          {data.summary || 'No summary available.'}
-        </p>
-      </div>
+      <TextHighlighter contentId={data.id} source="summary">
+        <div className="card summary-card mb-32">
+          <div className="label mb-16">SUMMARY</div>
+          <p style={{ lineHeight: '1.7', fontSize: '1rem' }}>
+            {data.summary || 'No summary available.'}
+          </p>
+        </div>
+      </TextHighlighter>
 
       <div className="card mb-32">
         <div className="label mb-16">KEY INSIGHTS</div>
@@ -92,6 +116,38 @@ export default function ContentDetailPage() {
           )}
         </ol>
       </div>
+
+      {/* Highlights */}
+      {highlights.length > 0 && (
+        <div className="card mb-32">
+          <div className="label mb-16">YOUR HIGHLIGHTS</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {highlights.map(h => (
+              <div key={h.id} style={{
+                borderLeft: '4px solid var(--accent)',
+                paddingLeft: '20px',
+                background: 'var(--accent-light)',
+                borderRadius: '0 16px 16px 0',
+                padding: '16px 20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+              }}>
+                <p style={{ fontStyle: 'italic', margin: 0, lineHeight: '1.6', fontSize: '0.95rem' }}>
+                  {h.text}
+                </p>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => handleDeleteHighlight(h.id)}
+                  style={{ color: 'var(--red)', padding: '4px 8px', marginLeft: '12px', flexShrink: 0 }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Related Content */}
       {related.length > 0 && (
@@ -122,7 +178,24 @@ export default function ContentDetailPage() {
         >
           Add Note
         </button>
+        <button
+          className="btn btn-secondary"
+          onClick={() => window.open(`/api/content/${data.id}/export`, '_blank')}
+        >
+          Export PDF
+        </button>
+        {!showChat && (
+          <button className="btn btn-secondary" onClick={() => setShowChat(true)}>
+            💬 Ask AI
+          </button>
+        )}
       </div>
+
+      {showChat && (
+        <div className="mt-32">
+          <ChatPanel contentId={data.id} onClose={() => setShowChat(false)} />
+        </div>
+      )}
     </div>
   )
 }

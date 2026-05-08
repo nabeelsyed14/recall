@@ -62,7 +62,7 @@ export default function QuizSession({ contentId, onComplete }) {
     return (
       <div className="review-container">
         <h2 className="mb-24">Loading Quiz...</h2>
-        <div className="skeleton" style={{ height: '200px' }} />
+        <div className="skeleton-detail-block" style={{ height: '200px' }} />
       </div>
     )
   }
