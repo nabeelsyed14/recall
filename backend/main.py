@@ -27,6 +27,10 @@ app.add_middleware(
 def read_root():
     return {"message": "Welcome to Recall API"}
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 app.include_router(ingest.router)
 app.include_router(review.router)
 app.include_router(notes.router)
