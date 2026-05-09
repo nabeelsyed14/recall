@@ -5,21 +5,27 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 MAX_CHARS = 6000
 
-YOUTUBE_BOILERPLATE_PATTERNS = [
-    "share", "enjoy", "subscribe", "watch the full",
-    "click the link", "like and subscribe", "hit the bell",
-    "support the channel", "become a member", "patreon",
-    "follow us on", "check out our", "don't forget to",
-    "thanks for watching", "see you in the next",
-]
 
-
-def _is_youtube_boilerplate(text: str) -> bool:
-    if len(text) < 200:
+def _validate_transcript_with_groq(text: str, title: str) -> bool:
+    """Returns True if text is real video content, False if it's boilerplate."""
+    try:
+        from groq import Groq
+        import os
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        sample = text[:400]
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{
+                "role": "user",
+                "content": f'Video title: "{title}"\n\nExtracted text: "{sample}"\n\nIs this actual spoken video content related to the title, or is it generic YouTube platform text, a video description, or promotional content? Reply with only YES or NO.'
+            }],
+            max_tokens=5,
+            temperature=0
+        )
+        answer = response.choices[0].message.content.strip().upper()
+        return answer == "YES"
+    except Exception:
         return True
-    first_100 = text[:100].lower()
-    pattern_matches = sum(1 for p in YOUTUBE_BOILERPLATE_PATTERNS if p in first_100)
-    return pattern_matches >= 2
 
 
 async def scrape_url(url: str) -> tuple[str, str, int]:
@@ -187,9 +193,10 @@ async def extract_youtube(url: str) -> tuple[str, str, int]:
         except Exception as e:
             print(f"[SCRAPER] noembed failed: {e}")
 
-    # 6. Quality check — reject boilerplate
-    if _is_youtube_boilerplate(transcript_text):
-        raise ValueError("This video's content could not be extracted. It may not have captions enabled. Try a different video or paste an article URL instead.")
+    # 6. Quality check — Groq validation for short extractions
+    if len(transcript_text) < 1500:
+        if not _validate_transcript_with_groq(transcript_text, title):
+            raise ValueError("The extracted content does not match this video. This video may not have accessible captions. Try a different video or paste an article URL instead.")
 
     if duration_seconds:
         print(f"[SCRAPER] Duration: {duration_seconds}s ({duration_seconds // 60}m {duration_seconds % 60}s)")
