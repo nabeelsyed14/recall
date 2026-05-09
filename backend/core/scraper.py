@@ -5,6 +5,22 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 MAX_CHARS = 6000
 
+YOUTUBE_BOILERPLATE_PATTERNS = [
+    "share", "enjoy", "subscribe", "watch the full",
+    "click the link", "like and subscribe", "hit the bell",
+    "support the channel", "become a member", "patreon",
+    "follow us on", "check out our", "don't forget to",
+    "thanks for watching", "see you in the next",
+]
+
+
+def _is_youtube_boilerplate(text: str) -> bool:
+    if len(text) < 200:
+        return True
+    first_100 = text[:100].lower()
+    pattern_matches = sum(1 for p in YOUTUBE_BOILERPLATE_PATTERNS if p in first_100)
+    return pattern_matches >= 2
+
 
 async def scrape_url(url: str) -> tuple[str, str, int]:
     domain = urlparse(url).netloc
@@ -171,10 +187,9 @@ async def extract_youtube(url: str) -> tuple[str, str, int]:
         except Exception as e:
             print(f"[SCRAPER] noembed failed: {e}")
 
-    # 6. Never fail — always return something
-    if not transcript_text or len(transcript_text) < 50:
-        transcript_text = f"YouTube video: {title}. Transcript not available on cloud hosting due to IP restrictions. Content was processed from the video description and metadata."
-        print(f"[SCRAPER] Minimal content fallback")
+    # 6. Quality check — reject boilerplate
+    if _is_youtube_boilerplate(transcript_text):
+        raise ValueError("This video's content could not be extracted. It may not have captions enabled. Try a different video or paste an article URL instead.")
 
     if duration_seconds:
         print(f"[SCRAPER] Duration: {duration_seconds}s ({duration_seconds // 60}m {duration_seconds % 60}s)")

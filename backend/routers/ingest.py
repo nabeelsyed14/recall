@@ -54,8 +54,16 @@ async def ingest_content(request: IngestRequest, user=Depends(get_current_user))
             return IngestResponse(status="success", message="Already in your library.", content_id=c["id"], title=c.get("title") or "Untitled", topic_name="")
 
         raw_text, extracted_title, duration_seconds = await scrape_url(url)
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        error_msg = str(e)
+        if "transcript" in error_msg.lower() or "caption" in error_msg.lower():
+            raise HTTPException(
+                status_code=400,
+                detail="We couldn't extract the actual content from this video. This happens with videos that don't have captions enabled or use restricted content. Try a different video, or paste an article URL instead."
+            )
+        raise HTTPException(status_code=400, detail=error_msg)
 
     try:
         questions_task = generate_questions_from_text(raw_text)
@@ -139,7 +147,7 @@ async def get_content_detail(content_id: int, user=Depends(get_current_user)):
     user_id = user["user_id"]
     try:
         query = (
-            f"select=id,title,source_url,summary,key_insights,created_at,word_count,duration_seconds,"
+            f"select=id,title,source_url,summary,key_insights,created_at,word_count,duration_seconds,raw_text,"
             f"questions(id)"
             f"&id=eq.{content_id}&user_id=eq.{user_id}"
         )
@@ -161,16 +169,19 @@ async def get_content_detail(content_id: int, user=Depends(get_current_user)):
                 ki = ki_raw
 
         word_count = c.get("word_count", 0)
+        raw_text = c.get("raw_text") or ""
         url = c.get("source_url") or ""
         is_video = "youtube.com" in url or "youtu.be" in url
         dur = c.get("duration_seconds", 0)
-        if dur and dur > 0:
+        if dur and dur > 0 and len(raw_text) > 1000:
             time_mins = max(1, round(dur / 60))
             time_est = f"{time_mins} min watch"
-        else:
+        elif len(raw_text) > 1000:
             wpm = 150 if is_video else 200
             time_mins = max(1, round(word_count / wpm)) if word_count > 0 else 1
             time_est = f"~{time_mins} min {'watch' if is_video else 'read'}"
+        else:
+            time_est = ""
 
         return ContentDetailResponse(
             id=c["id"],
